@@ -47,20 +47,18 @@ def send_friendship_request(request, pk):
 
 def friends(request, pk):
     user = User.objects.get(pk=pk)
-    requests = []
 
-    if user == request.user:
-        requests = FriendshipRequest.objects.filter(created_for=request.user, status=FriendshipRequest.SENT)
-        requests = FriendshipRequestSerializer(requests, many=True)
-        requests = requests.data
+    check1 = FriendshipRequest.objects.filter(created_for=request.user).filter(created_by=user)
+    check2 = FriendshipRequest.objects.filter(created_for=user).filter(created_by=request.user)
 
-    friends = user.friends.all()
+    if not check1 or not check2:
+        friendrequest = FriendshipRequest.objects.create(created_for=user, created_by=request.user)
 
-    return JsonResponse({
-        'user': UserSerializer(user).data,
-        'friends': UserSerializer(friends, many=True).data,
-        'requests': requests
-    }, safe=False)
+        # notification = create_notification(request, 'new_friendrequest', friendrequest_id=friendrequest.id)
+
+        return JsonResponse({'message': 'friendship request created'})
+    else:
+        return JsonResponse({'message': 'request already sent'})
 
 @api_view(['POST'])
 def handle_request(request, pk, status):
